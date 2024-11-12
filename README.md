@@ -1,5 +1,3 @@
----
-
 # PingPong Game in 8088 Assembly Language
 
 This project implements a simple **PingPong** game in 8088 Assembly Language, simulating a two-player game with paddles and a bouncing ball on a black screen.
@@ -67,5 +65,3 @@ Each player uses paddle movements to prevent the ball from passing their row. As
 
 **Institution**: FAST NUCES Lahore, Pakistan  
 **Course**: Computer Organization & Assembly Language, Fall 2024
-
----
