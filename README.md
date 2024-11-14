@@ -60,8 +60,8 @@ Each player uses paddle movements to prevent the ball from passing their row. As
 - The game ends once a player scores 5 points, at which point the screen resets.
 
 ## Contributors
-- Muhammad Ahmad Butt
-- Abdurehman
+- [Muhammad Ahmad Butt](https://github.com/muhammadahmad0313)
+- ![Abd Ur Rehman Naeem](https://github.com/A-noob-in-Coding)
 
 **Institution**: FAST NUCES Lahore, Pakistan  
 **Course**: Computer Organization & Assembly Language, Fall 2024
