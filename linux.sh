@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Base directory for all ASM files (adjust as needed)
-ASM_BASE_DIR="/home/abdur/Documents/asm"
+ASM_BASE_DIR="/home/abdur/Documents/COAL_PROJECT/COAL-PING-PONG"
 
 # Path to DOSBox (adjust if needed)
 DOSBOX_PATH="/usr/bin/dosbox"
@@ -24,19 +24,16 @@ FILENAME=$(basename "$1" .asm)
 # Get the directory of the file being passed
 FILE_DIR=$(dirname "$1")
 
-# Get the path relative to the base directory
-RELATIVE_PATH=${FILE_DIR#"$ASM_BASE_DIR/"}
 
 # Check if AFD should be run
 if [ "$2" == "debug" ]; then
 $DOSBOX_PATH -c "mount c $ASM_BASE_DIR" \
              -c "c:" \
-             -c "NASM.EXE $RELATIVE_PATH/$FILENAME.asm -o $RELATIVE_PATH/$FILENAME.COM" \
-             -c "AFD.EXE $RELATIVE_PATH/$FILENAME.COM" 
+             -c "NASM.EXE $FILENAME.asm -o $FILENAME.COM" \
+             -c "AFD.EXE $FILENAME.COM" 
 else
 $DOSBOX_PATH -c "mount c $ASM_BASE_DIR" \
              -c "c:" \
-             -c "NASM.EXE -f bin $RELATIVE_PATH/$FILENAME.asm -o $RELATIVE_PATH/$FILENAME.COM" \
-  -c "cd $RELATIVE_PATH" \
+             -c "NASM.EXE -f bin $FILENAME.asm -o $FILENAME.COM" \
   -c "$FILENAME.COM"
 fi
