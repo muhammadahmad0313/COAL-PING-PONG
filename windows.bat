@@ -2,7 +2,7 @@
 
 REM Base directory for all ASM files (adjust as needed)
 REM The path to where the project resides
-set "ASM_BASE_DIR=C:\Users\abdur\Documents\asm"
+set "ASM_BASE_DIR=C:\COAL-PING-PONG"
 
 REM Check if the filename is provided as an argument
 if "%~1"=="" (
@@ -25,12 +25,12 @@ set "FILE_DIR=%~dp1"
 
 REM Launch DOSBox with NASM and AFD
 if "%~2"=="debug" (
-  dosbox -c "mount c %ASM_BASE_DIR%" ^
+  DOSBoxPortable -c "mount c %ASM_BASE_DIR%" ^
           -c "c:" ^
           -c "NASM.EXE %FILENAME%.asm -o %FILENAME%.COM" ^
           -c "AFD.EXE %FILENAME%.COM" 
 ) else (
-  dosbox -c "mount c %ASM_BASE_DIR%" ^
+  DOSBoxPortable -c "mount c %ASM_BASE_DIR%" ^
           -c "c:" ^
           -c "NASM.EXE -f bin %FILENAME%.asm -o %FILENAME%.COM" ^
           -c "%FILENAME%.COM"

@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # Base directory for all ASM files (adjust as needed)
-ASM_BASE_DIR="/home/abdur/Documents/COAL_PROJECT/COAL-PING-PONG"
+ASM_BASE_DIR="C:\COAL-PING-PONG"
 
 # Path to DOSBox (adjust if needed)
-DOSBOX_PATH="/usr/bin/dosbox"
+DOSBOX_PATH="C:\COAL-PING-PONG"
 
 # Check if the filename is provided as an argument
 if [ -z "$1" ]; then
