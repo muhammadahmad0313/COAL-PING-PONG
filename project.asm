@@ -11,6 +11,12 @@ oldISR: dd 0
 ball: dw 0
 old_timer: dd 0
 ball_move_counter: dw 0
+prompt1: db 'Enter name for player 1: ',0
+prompt2: db 'Enter name for player 2: ',0
+player1:times 32 db 0
+player2:times 32 db 0
+sizeP1:dw 0
+sizeP2:dw 0
 
 resident:                                              ;;;;;;;;;;; SAVE BLOCK IN MEMORY ;;;;;;;;;;;;;;;;;;
 Setting_Paddle:
@@ -292,7 +298,104 @@ call Creating_Ball
 popa
 ret
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;bp
+;ret
+;prompt1 4
+;prompt2 6 
+;player1 8
+;player2 10
+;sizeP1  12
+;sizeP2  14
+getData:
+
+;;;;;;;;;;;;;;;;;;;;;;; PROMPT 1 ;;;;;;;;;;;;;;;;;;;;;;;;;
+push bp
+mov bp,sp
+mov ah,0x13
+mov al,0x01
+mov bl,0x07
+mov bh,0x00
+mov cx,25
+mov dh,11
+mov dl,23
+push cs
+pop es  
+mov di,[bp+4]
+pop bp
+mov bp,di
+int 10h
+
+
+;;;;;;;;;;;;;;;Taking input
+mov si,[bp+8]
+input1:
+mov ah,0x00
+int 16h
+cmp al,13
+je endInput
+cmp al,08 ;backspace
+je input1
+
+inc word [sizeP1]
+mov [cs:si],al
+inc si
+
+mov ah,0x0e
+int 10h
+jmp input1
+
+endInput:
+push bp
+mov bp,sp
+mov ah,0x13
+mov al,0x01
+mov bl,0x07
+mov bh,0x00
+mov cx,25
+mov dh,12
+mov dl,23
+push cs
+pop es  
+mov di,[bp+6]
+pop bp
+mov bp,di
+int 10h
+
+;;;;;;;;;;;;;;;;;;;;;Input 2
+mov si,[bp+10]
+
+input2:
+mov ah,0x00
+int 16h
+cmp al,13
+je endInput2
+cmp al,08 ;backspace
+je input2
+
+inc word [sizeP2]
+mov [cs:si],al
+inc si
+
+mov ah,0x0e
+int 10h
+jmp input2
+
+endInput2:
+ret
+
 start:
+call clearScreen
+
+push sizeP2
+push sizeP1
+push player2
+push player1
+push prompt2
+push prompt1
+call getData
+
 call InitialScreen
 call Hooking
 
