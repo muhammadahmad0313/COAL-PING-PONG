@@ -42,11 +42,14 @@ pop bp
 ret 4
 
 
+endISR_short:
+jmp far [cs:endISR]
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; HELPING FUNCTIONS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 LEFT_P:
 mov di,[start_of_Paddle2]
 cmp di,3840
-je endISR
+je endISR_short
 
 push 0xb800
 push di
@@ -66,7 +69,7 @@ jmp endISR
 RIGHT_P1:
 mov di,[start_of_Paddle1]
 cmp di,0
-je endISR
+je endISR_short
 
 push 0xb800
 push di
