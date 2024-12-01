@@ -43,7 +43,17 @@ ret 4
 
 
 endISR_short:
-jmp far [cs:endISR]
+pop ds
+pop es
+pop dx
+pop cx
+pop bx
+pop ax
+
+mov al,0x20
+out 0x20,al
+;jmp far [cs:oldISR]
+iret
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; HELPING FUNCTIONS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 LEFT_P:
