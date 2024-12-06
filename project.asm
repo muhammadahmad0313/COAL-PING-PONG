@@ -17,8 +17,12 @@ player1:times 32 db 0
 player2:times 32 db 0
 sizeP1:dw 0
 sizeP2:dw 0
-
-resident:                                              ;;;;;;;;;;; SAVE BLOCK IN MEMORY ;;;;;;;;;;;;;;;;;;
+ballDirection: dw 0
+ ;1 for top right
+ ;2 for bottom right 
+ ;3 for top left
+ ;4 for bottom left
+                                          ;;;;;;;;;;; SAVE BLOCK IN MEMORY ;;;;;;;;;;;;;;;;;;
 Setting_Paddle:
 push bp
 mov bp,sp
@@ -40,9 +44,8 @@ mov ax,0x0720
 rep stosw
 pop bp
 ret 4
-
-
-endISR_short:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;Short JUMP;;;;;;;;;;;;;;;;;;;;;;;;;;;
+end_short:
 pop ds
 pop es
 pop dx
@@ -59,7 +62,7 @@ iret
 LEFT_P:
 mov di,[start_of_Paddle2]
 cmp di,3840
-je endISR_short
+je end_short 
 
 push 0xb800
 push di
@@ -79,7 +82,7 @@ jmp endISR
 RIGHT_P1:
 mov di,[start_of_Paddle1]
 cmp di,0
-je endISR_short
+je end_short
 
 push 0xb800
 push di
@@ -260,6 +263,7 @@ mov di,[bp+4]
 mov word [es:di],0x072A
 mov [ball],di
 pop bp
+mov word [ballDirection],4
 ret 4
 
 clearScreen:
@@ -305,6 +309,7 @@ sub di,160  			   ;setting ball above the paddle 2
 
 ;;;;;;;;Function Call with Parameters
 push es
+sub di, 1920
 push di
 call Creating_Ball
 
@@ -413,7 +418,7 @@ call InitialScreen
 call Hooking
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; ENDING ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- mov dx , resident
+ mov dx , start
  add dx,15
  shr dx,4
  mov ax,0x3100
@@ -443,23 +448,57 @@ pop es
 
 ;;;;;;;;;;;;;;;; Loading ball location ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     mov di, [ball]
-    mov cx, 24
+ ;   mov cx, 24
 
 backing:
     mov ax, 0x0720
     stosw
-    sub di, 2
+    sub di, 2 ; to remove the di-2 effect from stows string instruction
+    ; ball direction logic here
+    cmp word [ballDirection], 1 ; ball is moving top right
+    je BallTopRight
+    cmp word [ballDirection], 2 ; ball is  moving bottom right
+    je BallBottomRight
+    cmp word [ballDirection], 3 ; ball is moving top left
+    je BallTopLeft
+    cmp word [ballDirection], 4 ; ball is moving bottom left
+    je BallBottomLeft
+
+    BallTopRight:
     sub di, 158
     mov ax, 0x072A
     stosw
-    sub di, 2
+    jmp end_direction_check
+
+    BallTopLeft:
+    sub di, 162
+    mov ax, 0x072A
+    stosw
+    
+    jmp end_direction_check
+
+    BallBottomRight:
+    add di, 162
+    mov ax, 0x072A
+    stosw
+    jmp end_direction_check
+
+    BallBottomLeft:
+    add di, 158
+    mov ax, 0x072A
+    stosw
+    jmp end_direction_check
 	
 	;;;;;;;;;;;; Updating location OF BALL i.e Ball has to print ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-	mov [ball],di
 
+
+    end_direction_check:
+    sub di, 2 ; to remove the di-2 effect from stows string instruction
+	mov [ball],di
     ; Reset counter
     mov ax, 0
     mov [ball_move_counter], ax  
+
 
 chain_interrupt:
 inc word [ball_move_counter]
@@ -469,4 +508,3 @@ inc word [ball_move_counter]
     popf
 
     jmp far [cs:old_timer]
-
