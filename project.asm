@@ -263,7 +263,7 @@ mov di,[bp+4]
 mov word [es:di],0x072A
 mov [ball],di
 pop bp
-mov word [ballDirection],4
+mov word [ballDirection],1
 ret 4
 
 clearScreen:
@@ -445,7 +445,6 @@ call Hooking
 move_ball:
 push word 0xb800
 pop es
-
 ;;;;;;;;;;;;;;;; Loading ball location ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     mov di, [ball]
  ;   mov cx, 24
@@ -466,12 +465,29 @@ backing:
 
     BallTopRight:
     sub di, 158
+    mov dx, di
+    add dx, 2
+    mov ax, 160
+    div dx
+    cmp dx, 0
+    jne not_collision3
+    sub di, 4
+    mov word [ballDirection], 3
+    not_collision3:
     mov ax, 0x072A
     stosw
     jmp end_direction_check
 
     BallTopLeft:
     sub di, 162
+    ; checking for collision
+    mov ax, 160
+    div di
+    cmp dx, 0
+    jne not_collision1
+    add di, 4
+    mov word [ballDirection], 1
+    not_collision1:
     mov ax, 0x072A
     stosw
     
@@ -479,12 +495,29 @@ backing:
 
     BallBottomRight:
     add di, 162
+    mov dx, di
+    add dx, 2
+    mov ax, 160
+    div dx
+    cmp dx, 0
+    jne not_collision4
+    sub di, 4
+    not_collision4:
     mov ax, 0x072A
     stosw
     jmp end_direction_check
 
     BallBottomLeft:
     add di, 158
+    ; checking for collision
+    mov ax, 160
+    div di
+    cmp dx, 0
+    jne not_collision2
+    add di, 4
+    mov word [ballDirection], 2
+    not_collision2:
+
     mov ax, 0x072A
     stosw
     jmp end_direction_check
