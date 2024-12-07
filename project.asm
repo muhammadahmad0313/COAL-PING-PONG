@@ -456,13 +456,59 @@ backing:
     ;sub di, 2 ; to remove the di-2 effect from stows string instruction
     ; ball direction logic here
     cmp word [ballDirection], 1 ; ball is moving top right
-    je BallTopRight
+    jne check1
+    jmp far [cs:BallTopRight]
+
+    check1:
     cmp word [ballDirection], 2 ; ball is  moving bottom right
-    je BallBottomRight
+
+    jne check2
+    jmp far [cs:BallBottomRight]
+
+    check2:
     cmp word [ballDirection], 3 ; ball is moving top left
     je BallTopLeft
+
+    check3:
     cmp word [ballDirection], 4 ; ball is moving bottom left
     je BallBottomLeft
+
+BallBottomLeft:
+add di, 158
+cmp di, 3840
+jl notBottomCollision2
+
+; collision logic
+sub di, 320
+mov word [ballDirection], 3
+push word 0xb800
+push di
+call Creating_Ball
+jmp endOfMove
+notBottomCollision2:
+push word 0xb800
+push di
+call Creating_Ball
+jmp endOfMove
+
+BallTopLeft:
+sub di, 162
+cmp di, 160
+jg nottopCollision2
+
+; collision logic
+add di, 320
+mov word [ballDirection], 4
+push word 0xb800
+push di
+call Creating_Ball
+jmp endOfMove
+nottopCollision2:
+push word 0xb800
+push di
+call Creating_Ball
+jmp endOfMove
+
 
 BallTopRight:
 sub di,158
@@ -517,41 +563,9 @@ push di
 call Creating_Ball
 jmp endOfMove
 
-BallTopLeft:
-sub di, 162
-cmp di, 160
-jg nottopCollision2
 
-; collision logic
-add di, 320
-mov word [ballDirection], 4
-push word 0xb800
-push di
-call Creating_Ball
-jmp endOfMove
-nottopCollision2:
-push word 0xb800
-push di
-call Creating_Ball
-jmp endOfMove
 
-BallBottomLeft:
-add di, 158
-cmp di, 3840
-jl notBottomCollision2
 
-; collision logic
-sub di, 320
-mov word [ballDirection], 3
-push word 0xb800
-push di
-call Creating_Ball
-jmp endOfMove
-notBottomCollision2:
-push word 0xb800
-push di
-call Creating_Ball
-jmp endOfMove
 
 
 endOfMove:
