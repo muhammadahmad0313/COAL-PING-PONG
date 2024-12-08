@@ -17,7 +17,7 @@ player1:times 32 db 0
 player2:times 32 db 0
 sizeP1:dw 0
 sizeP2:dw 0
-ballDirection: dw 3
+ballDirection: dw 1
  ;1 for top right
  ;2 for bottom right 
  ;3 for top left
@@ -425,55 +425,7 @@ call Hooking
  mov ax,0x3100
  int 21h
  
- 
-Ball_Movement:
-    pushf                 
-    pusha                 
-    push ds
-    push es
-    
-    ; Setup data segment
-    mov ax, cs
-    mov ds, ax
-
-    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; DELAY ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    mov ax, [ball_move_counter]  ; Load counter value
-    cmp ax, 9           ;;;;;;;;;;;;;;;;;;; BALL MOVEMENT ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    je move_ball
-
-    jmp chain_interrupt
-
-move_ball:
-push word 0xb800
-pop es
-;;;;;;;;;;;;;;;; Loading ball location ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    mov di, [ball]
- ;   mov cx, 24
-
-backing:
-    ;mov ax, 0x0720
-    ;stosw
-    ;sub di, 2 ; to remove the di-2 effect from stows string instruction
-    ; ball direction logic here
-    cmp word [ballDirection], 1 ; ball is moving top right
-    jne check1
-    jmp far [cs:BallTopRight]
-
-    check1:
-    cmp word [ballDirection], 2 ; ball is  moving bottom right
-
-    jne check2
-    jmp far [cs:BallBottomRight]
-
-    check2:
-    cmp word [ballDirection], 3 ; ball is moving top left
-    je BallTopLeft
-
-    check3:
-    cmp word [ballDirection], 4 ; ball is moving bottom left
-    je BallBottomLeft
-
-BallBottomLeft:
+ BallBottomLeft:
 add di, 158
 cmp di, 3840
 jl notBottomCollision2
@@ -491,24 +443,43 @@ push di
 call Creating_Ball
 jmp endOfMove
 
-BallTopLeft:
-sub di, 162
-cmp di, 160
-jg nottopCollision2
+Ball_Movement:
+    pushf                 
+    pusha                 
+    push ds
+    push es
+    
+    ; Setup data segment
+    mov ax, cs
+    mov ds, ax
 
-; collision logic
-add di, 320
-mov word [ballDirection], 4
-push word 0xb800
-push di
-call Creating_Ball
-jmp endOfMove
-nottopCollision2:
-push word 0xb800
-push di
-call Creating_Ball
-jmp endOfMove
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; DELAY ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    mov ax, [ball_move_counter]  ; Load counter value
+    cmp ax, 9        ;;;;;;;;;;;;;;;;;;; BALL MOVEMENT ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    je move_ball
 
+    jmp chain_interrupt
+
+move_ball:
+push word 0xb800
+pop es
+;;;;;;;;;;;;;;;; Loading ball location ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    mov di, [ball]
+ ;   mov cx, 24
+
+backing:
+    ;mov ax, 0x0720
+    ;stosw
+    ;sub di, 2 ; to remove the di-2 effect from stows string instruction
+    ; ball direction logic here
+    cmp word [ballDirection], 1 ; ball is moving top right
+    je BallTopRight
+    cmp word [ballDirection], 2 ; ball is  moving bottom right
+    je BallBottomRight
+    cmp word [ballDirection], 3 ; ball is moving top left
+    je BallTopLeft
+    cmp word [ballDirection], 4 ; ball is moving bottom left
+    je BallBottomLeft  ;<-
 
 BallTopRight:
 sub di,158
@@ -529,9 +500,9 @@ nottopCollision1:
 ; mov bx, 160
 ; div bx
 ; cmp dx, 0
-; jne notRightWall1
+; jne notRightWall1  ;<-
 
-; ; collision logic
+; ; ; collision logic
 ; sub di, 4
 ; mov word [ballDirection], 3
 ; push word 0xb800
@@ -563,9 +534,23 @@ push di
 call Creating_Ball
 jmp endOfMove
 
+BallTopLeft:
+sub di, 162
+cmp di, 160
+jg nottopCollision2
 
-
-
+; collision logic
+add di, 320
+mov word [ballDirection], 4
+push word 0xb800
+push di
+call Creating_Ball
+jmp endOfMove
+nottopCollision2:
+push word 0xb800
+push di
+call Creating_Ball
+jmp endOfMove
 
 
 endOfMove:
