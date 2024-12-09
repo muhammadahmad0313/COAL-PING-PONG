@@ -1,340 +1,80 @@
-[org 100h]
+[org 0x0100]
 jmp start
 
-;;;;;;;;;;;;;;;;;;;;;;;;;; VARIABLES ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-Size_Of_Paddle:dw 9 
-Attribute_Of_Paddle:dw 0x7720
-start_of_Paddle1:dw 0
-start_of_Paddle2:dw 0
-Paddle:dw 0               ;1 refers that CreatePaddle call is for Paddle 1 and vice versa ;used in clearing Paddle
-oldISR: dd 0
-ball: dw 0
-old_timer: dd 0
-ball_move_counter: dw 0
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; VARIABLES ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+Old_Timer:dd 0
+Old_Isr:dd 0
+P1_Score:dw 0
+P2_Score:dw 0
+Msg_After_P1:db 'Win The Game!!!'
+Msg_After_P2:db 'Win The Game!!!'
 prompt1: db 'Enter name for player 1: ',0
 prompt2: db 'Enter name for player 2: ',0
-player1:times 32 db 0
-player2:times 32 db 0
+player1:times 32 db 0,0  
+player2:times 32 db 0,0  
 sizeP1:dw 0
 sizeP2:dw 0
-ballCurrColumn: dw 20
-ballDirection: dw 3
- ;1 for top right
- ;2 for bottom right 
- ;3 for top left
- ;4 for bottom left
-                                          ;;;;;;;;;;; SAVE BLOCK IN MEMORY ;;;;;;;;;;;;;;;;;;
-Setting_Paddle:
-push bp
-mov bp,sp
-push ax
-mov ax,[bp+4]
-mov [Paddle],ax
-pop ax
-pop bp
-ret 2
+currX:dw 0
+Top_Left_Paddle:dw 35
+Top_Right_Paddle:dw 45
+Bottom_Left_Paddle:dw 35
+Bottom_Right_Paddle:dw 45
+currRow:dw 23
+currCol:dw 40
+point_X:dw 1
+point_Y:dw 1
+printcount:dw 1
+Compare_Position:dw 0
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-
-Clearing_Paddle:
-push bp
-mov bp,sp
-mov di,[bp+4]
-mov word es,[bp+6]
-mov cx,[Size_Of_Paddle]
-mov ax,0x0720
-rep stosw
-pop bp
-ret 4
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;Short JUMP;;;;;;;;;;;;;;;;;;;;;;;;;;;
-end_short:
-pop ds
-pop es
-pop dx
-pop cx
-pop bx
-pop ax
-
-mov al,0x20
-out 0x20,al
-;jmp far [cs:oldISR]
-iret
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; HELPING FUNCTIONS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-LEFT_P:
-mov di,[start_of_Paddle2]
-cmp di,3840
-je end_short 
-
-push 0xb800
-push di
-call Clearing_Paddle
-
-mov di,[start_of_Paddle2]
-sub di,2
-push 0xb800
-push di
-push word 2
-
-
-call Creating_Paddle
-
-jmp endISR
-
-RIGHT_P1:
-mov di,[start_of_Paddle1]
-cmp di,0
-je end_short
-
-push 0xb800
-push di
-call Clearing_Paddle
-
-mov di,[start_of_Paddle1]
-sub di,2
-push 0xb800
-push di
-push word 1
-call Creating_Paddle
-jmp endISR
-
-RIGHT_P:
-mov di,[start_of_Paddle2]
-cmp di,3982
-je endISR
-
-
-push 0xb800
-push di
-call Clearing_Paddle
-
-mov di,[start_of_Paddle2]
-add di,2
-push 0xb800
-push di
-push word 2
-
-call Creating_Paddle
-jmp endISR
-
-LEFT_P1:
-mov di,[start_of_Paddle1]
-cmp di,142
-je endISR
-
-push 0xb800
-push di
-call Clearing_Paddle
-
-mov di,[start_of_Paddle1]
-add di,2
-push 0xb800
-push di
-push word 1
-
-call Creating_Paddle
-jmp endISR
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; END OF HELPING FUNCTIONS  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; PADDLE MOVEMENT ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-Moving_Paddle:
-push ax
-push bx
-push cx
-push dx
-push es
-push ds
-
-mov ax, 0xb800              
-mov es, ax
-mov ax, cs
-mov ds, ax	
-
-in al,0x60
-
-;LEFT PRESSED 0x4B
-;RIGHT PRESSED 0x4D
-;A PRESSED 0x1E ->RIGHT
-;DS PRESSED 0x1F ->LEFT
-
-cmp al,0x4B
-je LEFT_P
-
-cmp al,0x4D
-je RIGHT_P
-
-cmp al ,0X1E
-je RIGHT_P1
-
-cmp al,0x1F
-je LEFT_P1
-
-endISR:
-pop ds
-pop es
-pop dx
-pop cx
-pop bx
-pop ax
-
-mov al,0x20
-out 0x20,al
-;jmp far [cs:oldISR]
-iret
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; HOOKING  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; HOOKING ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 Hooking:
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; INT 8 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-push ds
-mov ax,cs
-mov ds,ax
-
-push es
+;;;;;;;;;;;;;;;;;;;;;;;;;;;; STROING INT 8 ;;;;;;;;;;;;;;;;;;;;;;;;
 xor ax,ax
 mov es,ax
 mov ax,[es:8*4]
-mov [old_timer],ax
+mov [Old_Timer],ax
+mov ax,[es:8*4 + 2]
+mov [Old_Timer+2],ax
+;;;;;;;;;;;;;;;;;;;;;;;;;;; STORING INT 9 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+mov ax,[es:9*4]
+mov [Old_Isr],ax
+mov ax,[es:9*4+2]
+mov [Old_Isr+2],ax
+xor ax, ax
+mov es, ax 
 
-mov ax,[es:8*4+2]
-mov [old_timer+2],ax
-pop es
-
-push ds
-cli
-xor ax,ax
-mov ds,ax
-mov word [ds:8*4],Ball_Movement
-mov word [ds:8*4+2],cs
-pop ds
-sti
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; INT 9 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-xor ax ,ax
-mov es,ax
-mov ax , [es:9*4]
-mov [oldISR],ax
-
-mov ax , [es:9*4+2]
-mov [oldISR+2],ax
-cli
+;;;;;;;;;;;;;;;;;;;;;;;;;;;HOOKING INT 8 AND 9;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+cli 
+mov word [es:8*4], Ball_Movement 
+mov [es:8*4+2], cs 
 mov word [es:9*4],Moving_Paddle
-mov word [es:9*4+2],cs
-sti
-pop ds
+mov [es:9*4+2],cs
+sti 
 ret
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; PADDLE CREATION ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;Memory
-;di
-Creating_Paddle:
-push bp
-mov bp,sp
-mov ax,[bp+4]
-mov di,[bp+6]
-
-;updating start index of paddle
-mov [Paddle],ax
-cmp ax ,1
-je Its_Paddle1
-
-;Paddle 2
-mov [start_of_Paddle2],di
-jmp working
-
-Its_Paddle1:
-mov [start_of_Paddle1],di
-
-working:
-mov word es,[bp+8]
-mov cx,[Size_Of_Paddle]
-mov ax,[Attribute_Of_Paddle]
-rep stosw
-pop bp
-ret 6
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; BALL CREATION ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;Memory
-;location
-Creating_Ball:
-push bp
-mov bp,sp
-mov word es,[bp+6]
-mov di,[bp+4]
-mov word [es:di],0x072A
-mov [ball],di
-pop bp
-
-ret 4
-
-clearScreen:
-pusha
-    mov ax, 0xb800          
-    mov es, ax
-    mov di, 0
-    mov ax, 0x0720          
-    mov cx, 2000            
-    rep stosw
-popa
-    ret
-	
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;            InitialScreen   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-InitialScreen:
-pusha
-call clearScreen
-;Intial Position | Center
-mov di,160   ;total screen
-shr di,1     ;divide ;80
-sub di,12    ;sub half of size of paddle to make it at center
-
-;;;;;;;;Function Call with Parameters
-push 0xb800
-push di
-push word 1
-call Creating_Paddle
-
-mov di,160   ;total screen
-shr di,1     ;divide ;80
-sub di,12    ;sub half of size of paddle to make it at center
-add di,3840  ;for last row
-
-;;;;;;;;Function Call with Parameters
-push 0xb800
-push di
-push word 2
-call Creating_Paddle
-
-mov di,[start_of_Paddle2]  ;getting Position of paddle 2
-add di,8                   ;setting ball at Center
-sub di,160  			   ;setting ball above the paddle 2
-
-;;;;;;;;Function Call with Parameters
-
-push es
-mov di, 1920 + 40
-;sub di, 1920
-;add di,90 ;;;;;;;;;;;;;;;;debug
-push di
-call Creating_Ball
-
-popa
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; UNHOOKING INT 8 AND 9 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+Unhooking:
+xor ax,ax
+mov es,ax
+mov ax,[Old_Timer]
+mov [es:8*4],ax
+mov ax,[Old_Timer+2]
+mov [es:8*4+2],ax
+mov ax,[Old_Isr]
+mov [es:9*4],ax
+mov ax,[Old_Isr+2]
+mov [es:9*4+2],ax
 ret
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;bp
-;ret
-;prompt1 4
-;prompt2 6 
-;player1 8
-;player2 10
-;sizeP1  12
-;sizeP2  14
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; GETTING USER NAMES ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 getData:
-
+push cs
+pop ds
 ;;;;;;;;;;;;;;;;;;;;;;; PROMPT 1 ;;;;;;;;;;;;;;;;;;;;;;;;;
-push bp
-mov bp,sp
+
 mov ah,0x13
 mov al,0x01
 mov bl,0x07
@@ -344,33 +84,33 @@ mov dh,11
 mov dl,23
 push cs
 pop es  
-mov di,[bp+4]
-pop bp
-mov bp,di
+mov bp,prompt1
 int 10h
 
 
 ;;;;;;;;;;;;;;;Taking input
-mov si,[bp+8]
+mov si,player1
+mov word [sizeP1], 0
+mov cx, 32
 input1:
 mov ah,0x00
 int 16h
 cmp al,13
 je endInput
-cmp al,08 ;backspace
-je input1
 
-inc word [sizeP1]
 mov [cs:si],al
 inc si
+inc word [sizeP1]
 
 mov ah,0x0e
 int 10h
 jmp input1
 
 endInput:
-push bp
-mov bp,sp
+mov word [cs:si],0x20
+inc si
+inc word [sizeP1]
+
 mov ah,0x13
 mov al,0x01
 mov bl,0x07
@@ -380,204 +120,578 @@ mov dh,12
 mov dl,23
 push cs
 pop es  
-mov di,[bp+6]
-pop bp
-mov bp,di
+
+mov bp,prompt2
 int 10h
 
 ;;;;;;;;;;;;;;;;;;;;;Input 2
-mov si,[bp+10]
-
+mov si,player2
+mov word [sizeP2], 0
+mov cx, 32
 input2:
 mov ah,0x00
 int 16h
 cmp al,13
 je endInput2
-cmp al,08 ;backspace
-je input2
 
-inc word [sizeP2]
-mov [cs:si],al
+
+mov [si],al
 inc si
+inc word [sizeP2]
 
 mov ah,0x0e
 int 10h
 jmp input2
 
 endInput2:
+mov word [cs:si],0x20
+inc si
+inc word [sizeP2]
+
+ret
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; CLEAR SCREEN ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+clearscreen:
+mov ax, 0xb800 
+mov es, ax 
+mov di, 0 
+nextchar:
+mov word [es:di], 0x0720 
+add di, 2 
+cmp di, 4000 
+jne nextchar 
 ret
 
-start:
-call clearScreen
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-push sizeP2
-push sizeP1
-push player2
-push player1
-push prompt2
-push prompt1
-call getData
+;COL (X)
+;ROW (Y)
+;;;;;;;;;;;;;;;;;;;;;;; HELPER FUNCTION TO GET LOCATION BY PUSHING ROW AND COLUMN ;;;;;;;;;;;;;;;;;;;;
+screenlocation:
+push bp
+mov bp, sp
+push ax
+xor ax,ax
+mov al, 80 
+mul byte[bp+6] ; multiply with y 
+add ax, [bp+4] ; add x position 
+shl ax, 1 
+mov word[currX],ax
+pop ax
+pop bp
+ret 4
 
-call InitialScreen
-call Hooking
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; ENDING ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- mov dx , start
- add dx,15
- shr dx,4
- mov ax,0x3100
- int 21h
- 
- BallBottomLeft:
-add di, 158
-sub word [ballCurrColumn], 1
-cmp word [ballCurrColumn], 0
-jne notWallcollision2
-mov word [ballDirection], 2
-add di, 4
-jmp callBall2
-notWallcollision2:
-cmp di, 3840
-jl notBottomCollision2
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; PADDLE 1 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+Creating_paddle1:
+pusha
+push cs
+pop ds
+push word 0
+push word[Top_Left_Paddle]
+call screenlocation
+mov di,word[currX]
+mov ax,0xb800
+mov es,ax
+mov cx,10
+Clearing_Paddle1:
+mov word[es:di],0x7020
+add di,2
+loop Clearing_Paddle1
+popa
+ret
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-; collision logic
-sub di, 320
-mov word [ballDirection], 3
-jmp callBall2
-notBottomCollision2:
-callBall2:
-push word 0xb800
-push di
-call Creating_Ball
-jmp endOfMove
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; HELPER DELAY FUNCTION ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+delay:
+push cx
+mov cx, 80 ;Delay Value!!!
+delay_loop1:
+push cx
+mov cx, 0xFFFF
+delay_loop2:
+loop delay_loop2
+pop cx
+loop delay_loop1
+pop cx
+ret
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-BallBottomRight:
-add word [ballCurrColumn], 1
-cmp word [ballCurrColumn], 80
-jne notWallcollision4
-mov word [ballDirection], 4
-sub di, 4
-jmp callBall
-notWallcollision4:
-add di, 162
-cmp di, 3840
-jl notBottomCollision1
-; collision for bottom boundary
-mov word [ballDirection], 1
-sub di, 320
-jmp callBall
-notBottomCollision1:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; PADDLE 2 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+Creating_paddle2:
+pusha
+push cs
+pop ds
+push word 24
+push word[Bottom_Left_Paddle]
+call screenlocation
+mov di,word[currX]
+mov cx,10
+mov ax,0xb800
+mov es,ax
+Clearing_Paddle2:
+mov word[es:di],0x7020
+add di,2
+loop Clearing_Paddle2
+popa
+ret 
 
-callBall:
-push word 0xb800
-push di
-call Creating_Ball
-jmp endOfMove
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; BALL ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+Creating_Ball:
+push cs
+pop ds
+xor ax,ax
+mov al, 80 
+mul byte[currRow] 
+add ax, [currCol] 
+shl ax, 1 	
+mov di,ax
+mov ax,0xb800 
+mov es,ax
+mov word[es:di],0x072A 
+ret
 Ball_Movement:
-    pushf                 
-    pusha                 
-    push ds
-    push es
-    
-    ; Setup data segment
-    mov ax, cs
-    mov ds, ax
+pusha
+push cs
+pop ds
+cmp word[printcount],2
+jne exit11
+call clearscreen
+mov word[printcount],0	
+l1:
+cmp word[point_Y], 1
+jne L3
+cmp word[point_X], 1
+jne L2
+dec word[currRow]          
+inc word[currCol]          
+cmp word[currCol], 79      
+jne l1case1
+mov word[Compare_Position],1
+mov word[point_X], 0  
+jmp l1case1
+exit11:  
+jmp Exit
+L3:
+jmp l3
+L2:
+jmp l2
+l1case1:
+cmp word[currRow], -1      
+je l1case2           
+cmp word[currRow], 0     
+jne exit1
+xor ax,ax
+xor bx,bx
+mov ax,word[Top_Left_Paddle]
+mov bx,word[Top_Right_Paddle]
+cmp word[currCol],bx
+jg exit1
+cmp word[currCol],ax
+jl exit1
+add word[currRow], 2       
+mov word[point_Y], 0          
+jmp Exit
+below1:
+cmp word[Compare_Position],1
+jne exit1
+mov word[point_X],1
+jmp Exit
+l1case2:
+inc word[P2_Score]
+call clearscreen
+call Printing_Score
+call delay
+mov word[Top_Left_Paddle],35
+mov word[Top_Right_Paddle],45
+mov word[Bottom_Left_Paddle],35
+mov word[Bottom_Right_Paddle],45
+xor ax, ax
+mov ax, word[Bottom_Left_Paddle]
+add ax, word[Bottom_Right_Paddle]
+shr ax, 1
+mov word[currRow], 23      
+mov word[currCol], ax      
+jmp Exit
 
-    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; DELAY ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    mov ax, [ball_move_counter]  ; Load counter value
-    cmp ax, 2     ;;;;;;;;;;;;;;;;;;; BALL MOVEMENT ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    je move_ball
+exit1:
+jmp Exit
+l2:
+dec word[currRow]
+dec word[currCol]
+cmp word[currCol],0
+jne l2case1
+mov word[Compare_Position],1
+mov word[point_X],1
+l2case1:
+cmp word[currRow],-1
+je l2case2
+cmp word[currRow],0
+jne exit2
+xor ax,ax
+xor bx,bx
+mov ax,word[Top_Left_Paddle]
+mov bx,word[Top_Right_Paddle]
+cmp word[currCol],bx
+jg below2
+sub ax,2
+cmp word[currCol],ax
+jl below2
+add word[currRow],2
+mov word[point_Y],0
+jmp Exit
+below2:
+cmp word[Compare_Position],1
+jne exit2
+mov word[point_X],0
+jmp Exit
+l2case2:
+inc word[P2_Score]
+call clearscreen
+call Printing_Score
+call delay
+mov word[Top_Left_Paddle],35
+mov word[Top_Right_Paddle],45
+mov word[Bottom_Left_Paddle],35
+mov word[Bottom_Right_Paddle],45
+xor ax,ax
+mov ax,word[Bottom_Left_Paddle]
+add ax,word[Bottom_Right_Paddle]
+shr ax,1
+mov word[currRow],23
+mov word[currCol],ax
+exit2:
+jmp Exit
+l3:
+cmp word[point_X],0
+je l3next
+jmp l4
+l3next:
+inc word[currRow]
+dec word[currCol]
+cmp word[currCol],0
+jne l3case1
+mov word[Compare_Position],1
+mov word[point_X],1
+l3case1:
+cmp word[currRow],25
+je l3case2
+cmp word[currRow],24
+jne exit3
+xor ax,ax
+xor bx,bx
+mov ax,word[Bottom_Left_Paddle]
+mov bx,word[Bottom_Right_Paddle]
+cmp word[currCol],bx
+jg below3
+sub ax,2
+cmp word[currCol],ax
+jl below3
+sub word[currRow],2
+mov word[point_Y],1
+jmp Exit
+below3:
+cmp word[Compare_Position],1
+jne exit3
+mov word[point_X],0
+jmp Exit
+l3case2:
+inc word[P1_Score]
+call clearscreen
+call Printing_Score
+call delay
+mov word[Top_Left_Paddle],35
+mov word[Top_Right_Paddle],45
+mov word[Bottom_Left_Paddle],35
+mov word[Bottom_Right_Paddle],45
+xor ax,ax
+mov ax,word[Top_Left_Paddle]
+add ax,word[Top_Right_Paddle]
+shr ax,1
+mov word[currRow],1
+mov word[currCol],ax
+exit3:
+jmp Exit
+l4:
+inc word[currRow]
+inc word[currCol]
+cmp word[currCol],79
+jne l4case1
+mov word[Compare_Position],1
+mov word[point_X],0
+l4case1:
+cmp word[currRow],25
+je l4case2
+cmp word[currRow],24
+jne Exit
+xor ax,ax
+xor bx,bx
+mov ax,word[Bottom_Left_Paddle]
+mov bx,word[Bottom_Right_Paddle]
+cmp word[currCol],bx
+jg below4
+cmp word[currCol],ax
+jl below4
+sub word[currRow],2
+mov word[point_Y],1
+jmp Exit
+below4:
+cmp word[Compare_Position],1
+jne Exit
+mov word[point_X],1
+jmp Exit
+l4case2:
+inc word[P1_Score]
+call clearscreen
+call Printing_Score
+call delay
+mov word[Top_Left_Paddle],35
+mov word[Top_Right_Paddle],45
+mov word[Bottom_Left_Paddle],35
+mov word[Bottom_Right_Paddle],45
+xor ax,ax
+mov ax,word[Top_Left_Paddle]
+add ax,word[Top_Right_Paddle]
+shr ax,1
+mov word[currRow],1
+mov word[currCol],ax
+Exit:
+inc word[printcount]
+mov word[Compare_Position],0
+call Creating_Ball
+call Creating_paddle1
+call Creating_paddle2
+;call Printing_Score
+mov al, 0x20
+out 0x20, al 
+popa
+iret 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-    jmp chain_interrupt
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; FUNCTION TO DISPLAY SCORES ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+Printing_Score:
+push cs
+pop ds
 
-move_ball:
+;P1 NAME
+mov cx, word [sizeP1]  
+mov si, player1
+push di
+mov di, 1820            
+cld                     
+print_loop1:
+lodsb                   
+mov ah, 0x07           
+stosb                 
+inc di
+loop print_loop1       
+pop di
+
+; Player 1 points
+push 11      ; Row number
+mov ax,[sizeP1]
+add ax,30
+push ax      ; Column number
+push word [P1_Score]  ; Number to display
+call printnum
+
+; P2 NAME
+mov cx, word [sizeP2]  
+mov si, player2
+push di
+mov di, 1980            
+cld                    
+print_loop2:
+lodsb                  
+mov ah, 0x07            
+stosb                 
+inc di
+loop print_loop2      
+pop di
+
+mov ax,[sizeP2]
+add ax,30
+push 12      ; Row number
+push ax      ; Column number
+push word[P2_Score]  ; Number to display
+call printnum
+ret
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; HELPER FUNCTION TO PRINT NUMBER ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;NUMBER TO DISPLAY
+;COL
+;ROW
+printnum:
+push bp
+mov bp, sp
+push es
+push ax
+push bx
+push cx
+push dx
+push di
+mov di, 80 
+mov ax, [bp+8] 
+mul di
+mov di, ax 
+add di, [bp+6] 
+shl di, 1 
+add di, 8 
+mov ax, 0xb800
+mov es, ax
+mov ax, [bp+4] 
+
+mov bx, 16 
+mov cx, 4 
+
+nextdigit:
+mov dx, 0 
+div bx 
+add dl, 0x30 
+cmp dl, 0x39 
+jbe skipalpha 
+add dl, 7 
+
+skipalpha:
+mov dh, 0x07 
+mov [es:di], dx
+sub di, 2 
+loop nextdigit 
+pop di
+pop dx
+pop cx
+pop bx
+pop ax
+pop es
+pop bp
+ret 6
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; PADDLE MOVEMENT ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+Moving_Paddle: 
+pusha
+push cs
+pop ds
 push word 0xb800
 pop es
-;;;;;;;;;;;;;;;; Loading ball location ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    mov di, [ball]
- ;   mov cx, 24
+xor ax,ax
+in al,0x60
+cmp word[point_Y],1
+jne PaddleB
+UpperLeftMove:
+cmp al,0x4B
+jne UpperRightMove
+cmp word[Top_Left_Paddle],0
+je End1
+dec word [Top_Left_Paddle]
+dec word [Top_Right_Paddle]
+jmp End1
 
-backing:
-    ;mov ax, 0x0720
-    ;stosw
-    ;sub di, 2 ; to remove the di-2 effect from stows string instruction
-    ; ball direction logic here
-    cmp word [ballDirection], 1 ; ball is moving top right
-    je BallTopRight
-    cmp word [ballDirection], 2 ; ball is  moving bottom right
-    je BallBottomRight
-    cmp word [ballDirection], 3 ; ball is moving top left
-    je BallTopLeft
-    cmp word [ballDirection], 4 ; ball is moving bottom left
-    je BallBottomLeft  ;<-
+UpperRightMove:
+cmp al,0x4D
+jne End1
+cmp word[Top_Right_Paddle],80
+je End1
+inc word [Top_Right_Paddle]
+inc word [Top_Left_Paddle]
+End1:
+jmp End
+PaddleB:
+cmp al,0x4B
+jne DownRightMove
+DownLeftMove:
+cmp word[Bottom_Left_Paddle],0
+je End2
+dec word [Bottom_Left_Paddle]
+dec word [Bottom_Right_Paddle]
+End2:
+jmp End
+DownRightMove:
+cmp al,0x4D
+jne End1
+cmp word[Bottom_Right_Paddle],80
+je End1
+inc word [Bottom_Right_Paddle]
+inc word [Bottom_Left_Paddle]
+End:
+popa
+mov al,0x20
+out 0x20,al
+iret
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-BallTopLeft:
-sub di, 162
-sub word [ballCurrColumn], 1
-cmp word [ballCurrColumn], 0
-jne notWallcollision1
-add di, 4
-mov word [ballDirection], 1
-jmp callBall1
-notWallcollision1:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; START FUNCTION ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+start:
+call clearscreen
 
-cmp di, 160
-jg nottopCollision2
+call getData
+call Creating_paddle1
+call Creating_paddle2
 
-; collision logic
-add di, 320
-mov word [ballDirection], 4
-jmp callBall1
-nottopCollision2:
-callBall1:
-push word 0xb800
-push di
-call Creating_Ball
-jmp endOfMove
+call Hooking
+Termination:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; DISPLAYING SCORE WHOSE WIN ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+cmp word[P1_Score],5
+jne nextcheck
+call clearscreen
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; P1 WINS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+mov cx, word [sizeP1]   
+mov si, player1
 
+mov di, 1820           
+cld                     
+print_loop11:
+lodsb                  
+mov ah, 0x07          
+stosb                 
+inc di
+loop print_loop11       
 
-BallTopRight:
-add word [ballCurrColumn], 1
-cmp word [ballCurrColumn], 80
-jne notWallcollision3
-mov word [ballDirection], 3
-sub di, 4
-push word 0xb800
-push di
-call Creating_Ball  
-jmp endOfMove
-notWallcollision3:
-sub di,158
-cmp di, 160
-jg nottopCollision1
-; collision for top boundary
-mov word [ballDirection], 2
-add di, 320
-push word 0xb800
-push di
-call Creating_Ball
-jmp endOfMove
+mov cx, 16  
+mov si, Msg_After_P1
 
-nottopCollision1:
+cld                     
+msg1:
+lodsb                  
+mov ah, 0x07            
+stosb                 
+inc di
+loop msg1      
 
-push word 0xb800
-push di
-call Creating_Ball
-jmp endOfMove
+jmp ProperTermination
+nextcheck:
+cmp word[P2_Score],5
+jne Termination
 
+call clearscreen
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; P2 WINS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+mov cx, word [sizeP2]   
+mov si, player2
+mov di, 1820            
+cld                     
+print_loop22:
+lodsb                  
+mov ah, 0x07           
+stosb                 
+inc di
+loop print_loop22      
+mov cx, 16 
+mov si, Msg_After_P2
+cld                   
+msg2:
+lodsb                  
+mov ah, 0x07           
+stosb                  
+inc di
+loop msg2      
 
-
-
-
-endOfMove:
-mov word [cs:ball_move_counter],0
-
-chain_interrupt:
-inc word [ball_move_counter]
-    pop es
-    pop ds
-    popa
-    popf
-
-jmp far [cs:old_timer]
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; TERMINATION ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ProperTermination:
+call Unhooking
+mov ax,0x4c00
+int 0x21
