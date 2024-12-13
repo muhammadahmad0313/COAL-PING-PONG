@@ -6,26 +6,48 @@ Old_Timer:dd 0
 Old_Isr:dd 0
 P1_Score:dw 0
 P2_Score:dw 0
-Msg_After_P1:db 'Win The Game!!!'
-Msg_After_P2:db 'Win The Game!!!'
+Msg_After_P1:db 'Win The Game!!!!'
+Msg_After_P2:db 'Win The Game!!!!'
 prompt1: db 'Enter name for player 1: ',0
 prompt2: db 'Enter name for player 2: ',0
 player1:times 32 db 0,0  
 player2:times 32 db 0,0  
 sizeP1:dw 0
 sizeP2:dw 0
-currX:dw 0
 Top_Left_Paddle:dw 35
 Top_Right_Paddle:dw 45
 Bottom_Left_Paddle:dw 35
 Bottom_Right_Paddle:dw 45
-currRow:dw 23
-currCol:dw 40
-point_X:dw 1
-point_Y:dw 1
-printcount:dw 1
-Compare_Position:dw 0
+currRow:dw 23   ;for ball
+currCol:dw 40   ;for ball
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+point_X:dw 1    ;for ball movement
+point_Y:dw 1    ;for ball movement
+;(1,1)->topRight ->l1
+;(0,1)->topLeft  ->l2
+;(1,0)->bottomRight ->l4
+;(0,0)->bottomLeft ->l3
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;(0,1)                                (1,1);
+;                                          ; 
+;                                          ;
+;(0,0)              *                 (1,0);
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+currX:dw 0    ;helper var to store location of paddle (return var of screenLocation)->help in clearing the screen  
+printcount:dw 1    ;1 for creation and 2 for movement
+Compare_Position:dw 0 ;helper var to indicate that have we compare the points
+;->when its 0 means just print donot have to compare and when 1 have to compare
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; HOOKING ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 Hooking:
@@ -196,10 +218,10 @@ mov di,word[currX]
 mov ax,0xb800
 mov es,ax
 mov cx,10
-Clearing_Paddle1:
+Creation_Paddle1:
 mov word[es:di],0x7020
 add di,2
-loop Clearing_Paddle1
+loop Creation_Paddle1
 popa
 ret
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -231,10 +253,10 @@ mov di,word[currX]
 mov cx,10
 mov ax,0xb800
 mov es,ax
-Clearing_Paddle2:
+Creation_Paddle2:
 mov word[es:di],0x7020
 add di,2
-loop Clearing_Paddle2
+loop Creation_Paddle2
 popa
 ret 
 
@@ -259,17 +281,17 @@ push cs
 pop ds
 cmp word[printcount],2
 jne exit11
-call clearscreen
+call clearscreen   ;clearing (paddles , ball)
 mov word[printcount],0	
 l1:
 cmp word[point_Y], 1
 jne L3
 cmp word[point_X], 1
 jne L2
-dec word[currRow]          
+dec word[currRow]       ;topRight case   
 inc word[currCol]          
 cmp word[currCol], 79      
-jne l1case1
+jne l1case1   ;collision
 mov word[Compare_Position],1
 mov word[point_X], 0  
 jmp l1case1
@@ -582,8 +604,10 @@ pop es
 xor ax,ax
 in al,0x60
 cmp word[point_Y],1
-jne PaddleB
+jne PaddleB ;0
 UpperLeftMove:
+;LEFT PRESSED 0x4B
+;RIGHT PRESSED 0x4D
 cmp al,0x4B
 jne UpperRightMove
 cmp word[Top_Left_Paddle],0
@@ -593,6 +617,8 @@ dec word [Top_Right_Paddle]
 jmp End1
 
 UpperRightMove:
+;LEFT PRESSED 0x4B
+;RIGHT PRESSED 0x4D
 cmp al,0x4D
 jne End1
 cmp word[Top_Right_Paddle],80
@@ -602,6 +628,8 @@ inc word [Top_Left_Paddle]
 End1:
 jmp End
 PaddleB:
+;LEFT PRESSED 0x4B
+;RIGHT PRESSED 0x4D
 cmp al,0x4B
 jne DownRightMove
 DownLeftMove:
@@ -612,6 +640,8 @@ dec word [Bottom_Right_Paddle]
 End2:
 jmp End
 DownRightMove:
+;LEFT PRESSED 0x4B
+;RIGHT PRESSED 0x4D
 cmp al,0x4D
 jne End1
 cmp word[Bottom_Right_Paddle],80
