@@ -20,6 +20,7 @@ Bottom_Left_Paddle:dw 35
 Bottom_Right_Paddle:dw 45
 currRow:dw 23   ;for ball
 currCol:dw 40   ;for ball
+space:dw ' ',0 ;for setup ->moving cursor at end
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
@@ -31,7 +32,7 @@ point_Y:dw 1    ;for ball movement
 ;(0,0)->bottomLeft ->l3
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;(0,1)                                (1,1);
-;                                          ; 
+;                                          ;
 ;                                          ;
 ;(0,0)              *                 (1,0);
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -75,7 +76,19 @@ mov [es:9*4+2],cs
 sti 
 ret
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
+setUp:
+mov ah,13h
+mov al,1
+mov bh,0
+mov bl,0x07
+mov cx,1
+mov dh,25
+mov dl,79
+push cs
+pop es
+mov bp,space
+int 10h
+ret
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; UNHOOKING INT 8 AND 9 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 Unhooking:
 xor ax,ax
@@ -282,6 +295,7 @@ pop ds
 cmp word[printcount],2
 jne exit11
 call clearscreen   ;clearing (paddles , ball)
+call setUp
 mov word[printcount],0	
 l1:
 cmp word[point_Y], 1
@@ -327,6 +341,7 @@ inc word[P2_Score]
 call clearscreen
 call Printing_Score
 call delay
+call setUp
 mov word[Top_Left_Paddle],35
 mov word[Top_Right_Paddle],45
 mov word[Bottom_Left_Paddle],35
@@ -375,6 +390,7 @@ inc word[P2_Score]
 call clearscreen
 call Printing_Score
 call delay
+call setUp
 mov word[Top_Left_Paddle],35
 mov word[Top_Right_Paddle],45
 mov word[Bottom_Left_Paddle],35
@@ -425,6 +441,7 @@ inc word[P1_Score]
 call clearscreen
 call Printing_Score
 call delay
+call setUp
 mov word[Top_Left_Paddle],35
 mov word[Top_Right_Paddle],45
 mov word[Bottom_Left_Paddle],35
@@ -470,6 +487,7 @@ inc word[P1_Score]
 call clearscreen
 call Printing_Score
 call delay
+call setUp
 mov word[Top_Left_Paddle],35
 mov word[Top_Right_Paddle],45
 mov word[Bottom_Left_Paddle],35
@@ -669,6 +687,7 @@ Termination:
 cmp word[P1_Score],5
 jne nextcheck
 call clearscreen
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; P1 WINS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 mov cx, word [sizeP1]   
 mov si, player1
